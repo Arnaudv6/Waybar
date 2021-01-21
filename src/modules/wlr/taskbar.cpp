@@ -267,6 +267,13 @@ Task::Task(const waybar::Bar &bar, const Json::Value &config, Taskbar *tbar,
         button_.signal_button_press_event().connect(
                 sigc::mem_fun(*this, &Task::handle_clicked), false);
     }
+
+    /* Handle drag_motion events */
+    button_.add_events(Gdk::POINTER_MOTION_MASK);
+    button_.signal_drag_leave().connect(
+                sigc::mem_fun(*this, &Task::handle_drag_leave), false);
+    button_.signal_drag_motion().connect(
+                sigc::mem_fun(*this, &Task::handle_drag_motion), false);
 }
 
 Task::~Task()
@@ -463,6 +470,22 @@ bool Task::handle_clicked(GdkEventButton *bt)
     return true;
 }
 
+bool Task::handle_drag_motion(GdkEventButton *bt)
+{
+    if (!drag_motion_id)
+        drag_motion_id = g_timeout_add(500, G_SOURCE_FUNC(&Task::minimize), nullptr);
+    return true;
+}
+
+bool Task::handle_drag_leave(GdkEventButton *bt)
+{
+    if (drag_motion_id){
+        g_source_remove(drag_motion_id);
+        drag_motion_id = 0;
+    }
+    return true;
+}
+
 bool Task::operator==(const Task &o) const
 {
     return o.id_ == id_;
@@ -489,7 +512,7 @@ void Task::update()
                     fmt::arg("state", state_string()),
                     fmt::arg("short_state", state_string(true))
                 );
-        if (markup) 
+        if (markup)
             text_before_.set_markup(txt);
         else
             text_before_.set_label(txt);
@@ -502,7 +525,7 @@ void Task::update()
                     fmt::arg("state", state_string()),
                     fmt::arg("short_state", state_string(true))
                 );
-        if (markup) 
+        if (markup)
             text_after_.set_markup(txt);
         else
             text_after_.set_label(txt);
@@ -516,7 +539,7 @@ void Task::update()
                     fmt::arg("state", state_string()),
                     fmt::arg("short_state", state_string(true))
                 );
-        if (markup) 
+        if (markup)
             button_.set_tooltip_markup(txt);
         else
             button_.set_tooltip_text(txt);
@@ -584,7 +607,7 @@ static const wl_registry_listener registry_listener_impl = {
     .global_remove = handle_global_remove
 };
 
-Taskbar::Taskbar(const std::string &id, const waybar::Bar &bar, const Json::Value &config) 
+Taskbar::Taskbar(const std::string &id, const waybar::Bar &bar, const Json::Value &config)
     : waybar::AModule(config, "taskbar", id, false, false),
       bar_(bar),
       box_{bar.vertical ? Gtk::ORIENTATION_VERTICAL : Gtk::ORIENTATION_HORIZONTAL, 0},
