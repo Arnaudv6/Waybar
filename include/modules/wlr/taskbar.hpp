@@ -71,6 +71,7 @@ class Task
     std::string title_;
     std::string app_id_;
     uint32_t state_ = 0;
+    guint drag_motion_id;
 
    private:
     std::string repr() const;
@@ -99,6 +100,8 @@ class Task
 
     /* Callbacks for Gtk events */
     bool handle_clicked(GdkEventButton *);
+    bool handle_drag_motion(GdkEventButton *);
+    bool handle_drag_leave(GdkEventButton *);
 
   public:
     bool operator==(const Task&) const;
