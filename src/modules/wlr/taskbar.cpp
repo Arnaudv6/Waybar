@@ -322,6 +322,26 @@ Task::Task(const waybar::Bar &bar, const Json::Value &config, Taskbar *tbar,
   button_.signal_button_release_event().connect(sigc::mem_fun(*this, &Task::handle_button_release),
                                                 false);
 
+
+
+
+    /* Handle drag_motion events */
+    button_.drag_dest_set(Gtk::DEST_DEFAULT_HIGHLIGHT, Gdk::ACTION_PRIVATE);
+
+    // button_.drag_dest_set(Gtk::DEST_DEFAULT_ALL, Gdk::ACTION_MOVE);
+    // button_.drag_dest_set(Gtk::DEST_DEFAULT_ALL, Gdk::ACTION_DEFAULT);
+
+    // no need for button_.add_events(Gdk::ENTER_NOTIFY_MASK);
+    // nor POINTER_MOTION_MASK or POINTER_MOTION_HINT_MASK
+
+    // no connect_swapped() in gtkmm it seems
+    // connect to signal_drag_begin() and signal_drag_end() for custom drag icon.
+    button_.signal_drag_motion().connect(
+            sigc::mem_fun(*this, &Task::handle_drag_motion), false);
+    button_.signal_drag_leave().connect(
+            sigc::mem_fun(*this, &Task::handle_drag_leave), false);
+
+
   button_.signal_motion_notify_event().connect(sigc::mem_fun(*this, &Task::handle_motion_notify),
                                                false);
 
@@ -331,6 +351,9 @@ Task::Task(const waybar::Bar &bar, const Json::Value &config, Taskbar *tbar,
   button_.signal_drag_data_get().connect(sigc::mem_fun(*this, &Task::handle_drag_data_get), false);
   button_.signal_drag_data_received().connect(
       sigc::mem_fun(*this, &Task::handle_drag_data_received), false);
+
+
+
 }
 
 Task::~Task() {
@@ -554,6 +577,41 @@ bool Task::handle_clicked(GdkEventButton *bt) {
 
   return true;
 }
+
+
+void Task::handle_drag_leave(const Glib::RefPtr<Gdk::DragContext>& context, guint time)
+{
+  // likely useless to check if drag entered before it left
+  spdlog::debug("handle_drag_leave(): {}", "out");
+  if (drag_started_) {
+      thread_.stop();
+      drag_started_ = false;
+  }
+}
+
+bool Task::handle_drag_motion(const Glib::RefPtr<Gdk::DragContext>& context, int x, int y, guint time)
+{
+  this->minimize(false);
+  this->activate();
+  return true;
+
+  // make logs debug level
+  if (!drag_started_) {
+    drag_started_ = true;
+    thread_ = [this] {
+        thread_.sleep_for(std::chrono::milliseconds(500));
+        spdlog::debug("handle_drag_motion() {}", "in for 500ms");
+        this->minimize(false);
+        this->activate();
+        drag_started_ = false;
+        thread_.stop();
+    };
+  }
+  // context.drag_status();
+  return true;
+}
+
+
 
 bool Task::handle_button_release(GdkEventButton *bt) {
   drag_start_button = -1;

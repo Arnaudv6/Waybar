@@ -7,6 +7,11 @@
 #include <gtkmm/icontheme.h>
 #include <gtkmm/image.h>
 #include <gtkmm/label.h>
+//#include <gtkmm/dragsource.h>
+#include <gdkmm/dragcontext.h>
+//#include <gdkmm/drop.h>
+//#include <gtkmm/droptarget.h>
+#include <gtkmm/widget.h>
 #include <wayland-client.h>
 
 #include <map>
@@ -19,6 +24,7 @@
 #include "bar.hpp"
 #include "client.hpp"
 #include "giomm/desktopappinfo.h"
+#include "util/sleeper_thread.hpp"
 #include "util/json.hpp"
 #include "wlr-foreign-toplevel-management-unstable-v1-client-protocol.h"
 
@@ -74,6 +80,7 @@ class Task {
   std::string app_id_;
   uint32_t state_ = 0;
 
+  bool drag_started_ = false;
   int32_t drag_start_x;
   int32_t drag_start_y;
   int32_t drag_start_button = -1;
@@ -85,6 +92,9 @@ class Task {
   bool image_load_icon(Gtk::Image &image, const Glib::RefPtr<Gtk::IconTheme> &icon_theme,
                        Glib::RefPtr<Gio::DesktopAppInfo> app_info, int size);
   void hide_if_ignored();
+
+  util::SleeperThread thread_;
+  // long dur_ = 500;
 
  public:
   /* Getter functions */
@@ -109,6 +119,8 @@ class Task {
 
   /* Callbacks for Gtk events */
   bool handle_clicked(GdkEventButton *);
+  void handle_drag_leave(const Glib::RefPtr<Gdk::DragContext>& context, guint time);
+  bool handle_drag_motion(const Glib::RefPtr<Gdk::DragContext>& context, int x, int y, guint time);
   bool handle_button_release(GdkEventButton *);
   bool handle_motion_notify(GdkEventMotion *);
   void handle_drag_data_get(const Glib::RefPtr<Gdk::DragContext> &context,
