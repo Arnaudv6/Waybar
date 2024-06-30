@@ -598,6 +598,12 @@ bool Task::handle_drag_motion(const Glib::RefPtr<Gdk::DragContext>& context, int
   // make logs debug level
   if (!drag_started_) {
     drag_started_ = true;
+
+    this->minimize(false);
+    this->activate();
+    drag_started_ = false;
+
+    /*
     thread_ = [this] {
         thread_.sleep_for(std::chrono::milliseconds(500));
         spdlog::debug("handle_drag_motion() {}", "in for 500ms");
@@ -606,6 +612,7 @@ bool Task::handle_drag_motion(const Glib::RefPtr<Gdk::DragContext>& context, int
         drag_started_ = false;
         thread_.stop();
     };
+    */
   }
   // context.drag_status();
   return true;
